@@ -16,7 +16,8 @@
 #include "filament_ensemble.h"
 //bead network class
 
- 
+#define SQRT2 1.41421356
+
 filament_ensemble::filament_ensemble(){}
 
  
@@ -463,6 +464,124 @@ void filament_ensemble::update_int_forces()
     this->update_bending();
 }
 
+/*
+Introduce bead-bead interactions. In order to allow formation of a nematic phase,
+allow beads to interact via a short-range repulsive force
+
+Loop through quads of the system and find interacting springs
+*/
+void filament_ensemble::update_filament_interactions()
+{
+	array <int,2> spring_1, spring_2;
+	int f1, f2, l1, l2;	//f = filament number	l = link number
+	int x, y, i, j;
+	int nsprings_at_quad;
+	double par1, par2;
+
+	int dim = this->get_nsprings();
+	vector<vector<int>> int_lks (dim, vector<int>(dim, 0));
+
+	//Loop over quadrants of 2D system
+	for (x = 0; x < nq[0]; x ++)	{
+		for (y = 0; y < nq[1]; y ++)	{
+			nsprings_at_quad = int(springs_per_quad[x]->at(y)->size());
+
+			for (i = 0; i < nsprings_at_quad; i ++)	{
+				spring_1 = springs_per_quad[x]->at(y)->at(i);
+
+				for (j = i+1; j < nsprings_at_quad; j ++)	{
+					spring_2 = springs_per_quad[x]->at(y)->at(j);
+
+					f1 = spring_1[0];
+					l1 = spring_1[1];
+					f2 = spring_2[0];
+					l2 = spring_2[1];
+
+					if (f1 == f2 && abs(l1 - l2) < 2)	continue;
+
+					par1 = f1 * (network[f1]->get_nsprings()) + l1;
+					par2 = f2 * (network[f2]->get_nsprings()) + l2;
+
+					if (! int_lks[par1][par2])	{
+						int_lks[par1][par2] = 1;
+						int_lks[par2][par1] = 1;
+
+						this->update_force_between_filaments(f1, l1, f2, l2);
+					}
+				}
+			}
+		}
+	}
+	int_lks.clear();
+}
+
+/*
+Calculate forces between actin beads of a pair of filaments
+*/
+void filament_ensemble::update_force_between_filaments(int f1, int l1, int f2, int l2)	{
+	array <spring*, 2> springs;
+	array <int, 2> fs, ls;
+	array <double, 2> dist, point, hx, hy;
+	spring *spring1, *spring2;
+	double r=-1., r_c, x1, y1, x2, y2, length, len, r_1, r_2, Fx, Fy;
+	int n1, n2, link1, link2, i, j;
+	double b = 1. / rmax;
+
+	springs[0] = network[f1]->get_spring(l1);
+	springs[1] = network[f2]->get_spring(l2);
+	fs[0] = f1; fs[1] = f2;
+	ls[0] = l1; ls[1] = l2;
+
+	for (i = 0; i < 1; i ++)	{
+		spring1 = springs[i];
+		spring2 = springs[(i+1)%2];
+		hx = spring1->get_hx();
+		hy = spring1->get_hy();
+		for (j = 0; j < 1; j ++)	{
+			r_c = spring2->get_r_c(BC, delrx, hx[j], hy[j]);
+			if (r_c < r || r == -1)	{
+				r = r_c;
+				length = spring1->get_length();
+				point = spring2->get_point();
+				x1 = hx[j];
+				y1 = hy[j];
+				x2 = point[0];
+				y2 = point[1];
+				len = dist_bc(BC, spring2->get_hx()[0]-x2, spring2->get_hy()[0]-y2, fov[0], fov[1], delrx);
+				n1 = fs[(i+1)%2];
+				n2 = fs[i];
+				link1 = ls[(i+1)%2];
+				link2 = ls[i] + j;
+			}
+		}
+	}
+
+	if (r < rmax)	{
+		if (springs[0]->get_line_intersect(BC, delrx, springs[1]))	{
+			Fx = 2 * kexv / (rmax * SQRT2);
+			Fy = 2 * kexv / (rmax * SQRT2);
+			network[f1]->update_forces(l1, Fx, Fy);
+			network[f1]->update_forces(l1+1, Fx, Fy);
+			network[f2]->update_forces(l2, -Fx, -Fy);
+			network[f2]->update_forces(l2+1, -Fx, -Fy);
+		}
+		else	{
+			dist = rij_bc(BC, (x2-x1), (y2-y1), fov[0], fov[1], delrx);
+			r_2 = len / length;
+			r_1 = 1 - r_2;
+
+			Fx = 2 * kexv * dist[0] * b * ((1/r) - b);
+			Fy = 2 * kexv * dist[1] * b * ((1/r) - b);
+
+			network[n1]->update_forces(link1, Fx * r_1, Fy * r_1);
+			network[n1]->update_forces(link1+1, Fx * r_2, Fy * r_2);
+			network[n2]->update_forces(link2, -Fx, -Fy);
+		}
+		pe_exv += kexv * pow(1 - r * b, 2);
+	}
+
+}
+
 /* Overdamped Langevin Dynamics Integrator (Leimkuhler, 2013) */
 
 void filament_ensemble::update()
@@ -470,9 +589,11 @@ void filament_ensemble::update()
 {      
     int net_sz = network.size();
     // #pragma omp parallel for
-    
+   
+	this->update_filament_interactions();
+
     for (int f = 0; f < net_sz; f++){
-      //  if (f==0) cout<<"\nDEBUG: filament updates using "<<omp_get_num_threads()<<" cores";  
+      //  if (f==0) cout<<"\nDEBUG: filament updates using "<<omp_get_num_threads()<<" cores"; 
         this->update_filament_stretching(f);
         network[f]->update_bending(t);
         network[f]->update_positions();
@@ -530,7 +651,7 @@ vector<vector<double> > filament_ensemble::spring_spring_intersections(double le
 filament_ensemble::filament_ensemble(int npolymer, int nbeads_min, int nbeads_extra, double nbeads_extra_prob, 
         array<double,2> myfov, array<int,2> mynq, double delta_t, double temp,
         double rad, double vis, double spring_len, vector<array<double, 3> > pos_sets, double stretching, double ext, double bending, 
-        double frac_force, string bc, double seed) {
+        double frac_force, string bc, double seed, double RMAX, double A) {
     
     fov = myfov;
     view[0] = 1;//(fov[0] - 2*nbeads*len)/fov[0];
@@ -548,6 +669,9 @@ filament_ensemble::filament_ensemble(int npolymer, int nbeads_min, int nbeads_ex
     shear_dt = dt;
     t = 0;
     delrx = 0;
+	rmax = RMAX;
+	kexv = A;
+	BC = bc;
     
     if (seed == -1){
         straight_filaments = true;
@@ -597,14 +721,15 @@ filament_ensemble::filament_ensemble(int npolymer, int nbeads_min, int nbeads_ex
 
 filament_ensemble::filament_ensemble(double density, array<double,2> myfov, array<int,2> mynq, double delta_t, double temp,
         double rad, double vis, int nbeads, double spring_len, vector<array<double, 3> > pos_sets, double stretching, double ext, double bending, 
-        double frac_force, string bc, double seed) {
+        double frac_force, string bc, double seed, double RMAX, double A) {
     
     fov = myfov;
     view[0] = 1;//(fov[0] - 2*nbeads*len)/fov[0];
     view[1] = 1;//(fov[1] - 2*nbeads*len)/fov[1];
     nq = mynq;
     half_nq = {{nq[0]/2, nq[1]/2}};
-    
+   
+
     visc=vis;
     spring_rest_len =spring_len;
     int npolymer=int(ceil(density*fov[0]*fov[1]) / nbeads);
@@ -614,6 +739,9 @@ filament_ensemble::filament_ensemble(double density, array<double,2> myfov, arra
     shear_dt = dt;
     t = 0;
     delrx = 0;
+	rmax = RMAX;
+	kexv = A;
+	BC = bc;
     
     if (seed == -1){
         straight_filaments = true;
@@ -658,7 +786,7 @@ filament_ensemble::filament_ensemble(double density, array<double,2> myfov, arra
 }
 
 filament_ensemble::filament_ensemble(vector<vector<double> > beads, array<double,2> myfov, array<int,2> mynq, double delta_t, double temp,
-        double vis, double spring_len, double stretching, double ext, double bending, double frac_force, string bc) {
+        double vis, double spring_len, double stretching, double ext, double bending, double frac_force, string bc, double RMAX, double A) {
     
     fov = myfov;
 
@@ -668,6 +796,10 @@ filament_ensemble::filament_ensemble(vector<vector<double> > beads, array<double
     temperature = temp;
     t = 0;
     delrx = 0;
+
+	rmax = RMAX;
+	kexv = A;
+	BC = bc;
 
     view[0] = 1;
     view[1] = 1;

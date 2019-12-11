@@ -66,6 +66,7 @@ int main(int argc, char* argv[]){
     bool diff_strain_flag, osc_strain_flag;
     double p_linkage_prob, a_linkage_prob;                                              
     int dead_head, p_dead_head;
+	double rmax, kexv;
 
     bool restart;
     double restart_time;
@@ -172,6 +173,9 @@ int main(int argc, char* argv[]){
         
         ("diff_strain_flag", po::value<bool>(&diff_strain_flag)->default_value(false), "flag to turn on linear differential strain")
         ("osc_strain_flag", po::value<bool>(&osc_strain_flag)->default_value(false), "flag to turn on oscillatory differential strain")
+
+		("rmax", po::value<double>(&rmax)->default_value(0.25), "cutoff distance for bead interactions")
+		("kexv", po::value<double>(&kexv)->default_value(1.0), "parameter of exv force calculation")
         ; 
     
     //Hidden options, will be allowed both on command line and 
@@ -329,12 +333,12 @@ int main(int argc, char* argv[]){
                 temperature, actin_length, viscosity, link_length, 
                 actin_position_arrs, 
                 link_stretching_stiffness, fene_pct, link_bending_stiffness,
-                fracture_force, bnd_cnd, myseed); 
+                fracture_force, bnd_cnd, myseed, rmax, kexv); 
     }else{
         net = new filament_ensemble(actin_pos_vec, {{xrange, yrange}}, {{xgrid, ygrid}}, dt, 
                 temperature, viscosity, link_length, 
                 link_stretching_stiffness, fene_pct, link_bending_stiffness,
-                fracture_force, bnd_cnd); 
+                fracture_force, bnd_cnd, rmax, kexv); 
     }
    
     if (link_intersect_flag) p_motor_pos_vec = net->spring_spring_intersections(p_motor_length, p_linkage_prob); 

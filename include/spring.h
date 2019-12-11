@@ -85,7 +85,13 @@ class spring
         array<double,2> get_intpoint();
 
         void calc_intpoint(string bc, double shear_dist, double xp, double yp);
-        
+
+		bool get_line_intersect(string bc, double delrx, spring * s2);
+
+		double get_r_c(string bc, double delrx, double x, double y);
+
+		array<double, 2> get_point();
+
         vector<array<int,2> > get_quadrants();
        
         void quad_update(string bc, double shear_dist);
@@ -101,7 +107,7 @@ class spring
         double xcm, ycm, l0, kl, max_ext, eps_ext, llen, llensq;//, force;
        
         array<double,2> fov, hx, hy;
-        array<double, 2> disp, force, intpoint, direc;
+        array<double, 2> disp, force, intpoint, point, direc;
 
         array<int, 2> nq, half_nq, aindex;
          

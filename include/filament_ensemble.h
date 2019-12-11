@@ -29,15 +29,15 @@ class filament_ensemble
         filament_ensemble(int npolymer, int nbeads_min, int nbeads_max, double nbeads_prob,
                 array<double,2> myfov, array<int,2> mynq, double delta_t, double temp,
                 double rad, double vis, double spring_len, vector<array<double, 3> > pos_sets, double stretching, double ext, double bending, 
-                double frac_force, string bc, double seed);
+                double frac_force, string bc, double seed, double RMAX, double A);
 
         filament_ensemble(double density, array<double,2> myfov, array<int, 2> mynq, double delta_t, double temp, 
                 double len, double vis, int nbead,
                 double spring_len, vector<array<double, 3> > pos_sets, double stretching, double ext, double bending, double frac_force, 
-                string bc, double seed);
+                string bc, double seed, double RMAX, double A);
         
         filament_ensemble(vector< vector<double> > beads, array<double,2> myfov, array<int,2> mynq, double delta_t, double temp,
-                double vis, double spring_len, double stretching, double ext, double bending, double frac_force, string bc); 
+                double vis, double spring_len, double stretching, double ext, double bending, double frac_force, string bc, double RMAX, double A); 
         
         ~filament_ensemble();
         
@@ -106,6 +106,10 @@ class filament_ensemble
         void update_stretching();
         
         void update_filament_stretching(int);
+
+		void update_filament_interactions();
+
+		void update_force_between_filaments(int f1, int l1, int f2, int l2);
         
         void update_bending();
         
@@ -165,7 +169,9 @@ class filament_ensemble
         double gamma, shear_stop, shear_dt, shear_speed, delrx;
         double max_springs_per_quad_per_filament, max_springs_per_quad; 
         bool straight_filaments = false, quad_off_flag;
-        double pe_stretch, pe_bend, ke;
+        double pe_stretch, pe_bend, pe_exv, ke;
+		double rmax, kexv;
+		string BC;
 
         array<double,2> fov, view;
         array<int, 2> nq, half_nq;

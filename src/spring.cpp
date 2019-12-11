@@ -37,6 +37,7 @@ spring::spring(double len, double stretching_stiffness, double max_ext_ratio, fi
 
     force = {{0,0}};
     intpoint = {{0,0}};
+	point = {{0,0}};
     llensq = l0*l0;
     llen = l0;
 }
@@ -251,6 +252,58 @@ void spring::calc_intpoint(string bc, double delrx, double xp, double yp)
             intpoint                = pos_bc(bc, delrx, 0, fov, {{0,0}}, proj); //velocity and dt are 0 since not relevant
         }
     }
+}
+
+bool spring::get_line_intersect(string bc, double delrx, spring * s2)	{
+	double dx12, dy12, denom, s_num, t_num;
+	array <double,2> disp1, disp2, disp12, hx2, hy2;
+	bool denomPos;
+
+	disp1 = this->get_disp();
+	disp2 = s2->get_disp();
+
+	hx2 = s2->get_hx();
+	hy2 = s2->get_hy();
+
+	dx12 = hx[0] - hx2[0];
+	dy12 = hy[0] - hy2[0];
+
+	disp12 = rij_bc(bc, dx12, dy12, fov[0], fov[1], delrx);
+
+	denom = (disp1[0] * disp2[1] - disp1[1] * disp2[0]);
+	if(denom == 0)	return false;
+	denomPos = denom > 0;
+
+	s_num = disp1[0] * disp12[1] - disp1[1] * disp12[0];
+	t_num = disp2[0] * disp12[1] - disp2[1] * disp12[0];
+
+	if ((s_num < 0) == denomPos)	return false;
+	if ((t_num < 0) == denomPos)	return false;
+
+	if (((s_num > denom) == denomPos) || ((t_num > denom) == denomPos))	return false;
+
+	return true;
+}
+
+double spring::get_r_c(string bc, double delrx, double x, double y)	{
+	double l2 = disp[0] * disp[0] + disp[1] * disp[1];
+	double tp;
+	array <double, 2> proj, point;
+
+	if (l2 == 0)	return dist_bc(bc, x - hx[0], y - hy[0], fov[0], fov[1], delrx);
+
+	tp = dot_bc(bc, x-hx[0], y-hy[0], hx[1]-hx[0], hy[1]-hy[0], fov[0], fov[1], delrx) / l2;
+
+	if (tp < 0)	{	return dist_bc(bc, x - hx[0], y - hy[0], fov[0], fov[1], delrx);	}
+	else if (tp > 1.0)	{ return dist_bc(bc, x - hx[1], y - hy[1], fov[0], fov[1], delrx);	}
+	//else
+	proj = {hx[0] + tp * disp[0], hy[0] + tp * disp[1]};
+	point = pos_bc(bc, delrx, 0, fov, {0, 0}, proj);
+	return dist_bc(bc, x - point[0], y - point[1], fov[0], fov[1], delrx);
+}
+
+array<double, 2> spring::get_point()	{
+	return point;
 }
 
 vector<array<int, 2> > spring::get_quadrants()
