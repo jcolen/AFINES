@@ -81,7 +81,6 @@ class spring
 
         double get_int_angle(double xp, double yp);
         
-//      array<double,2> get_intpoint(string bc, double shear_dist, double xp, double yp);
         array<double,2> get_intpoint();
 
         void calc_intpoint(string bc, double shear_dist, double xp, double yp);

@@ -41,20 +41,10 @@ class filament_ensemble
         
         ~filament_ensemble();
         
-        void nlist_init();
-        
         void nlist_init_serial();
-        
-        void quad_update();
         
         void quad_update_serial();
         
-        void consolidate_quads();
-
-        void update_quads_per_filament(int);
-
-        void reset_n_springs(int);
-
         void update_dist_map(set<pair<double, array<int, 2>>>& t_map, const array<int, 2>& mquad, double x, double y);
         
         vector<filament *> * get_network();
@@ -73,12 +63,6 @@ class filament_ensemble
         
         array<double,2> get_force(int fil, int bead);
         
-        double get_int_direction(int fil, int spring, double xp, double yp);
-
-        double get_xcm(int fil, int spring);
-       
-        double get_ycm(int fil, int spring);
-
         double get_llength(int fil, int spring);
        
         double get_bead_friction();
@@ -94,44 +78,10 @@ class filament_ensemble
         int get_nsprings();
         
         int get_nfilaments();
-
-        vector<vector<double> > spring_spring_intersections(double cllen, double prob);
-
-        void update_shear();
         
-        void update_d_strain(double);
-        
-        void update_delrx(double);
-        
-        void update_stretching();
-        
-        void update_filament_stretching(int);
-
-		void update_filament_interactions();
-
-		void update_force_between_filaments(int f1, int l1, int f2, int l2);
-        
-        void update_bending();
-        
-        void update_int_forces();
-
-        void update_positions();
-
-        void update_positions_range(int lo, int hi);
-        
-        void update_forces(int fil, int bead, double f2, double f3);
-
-        void write_beads(ofstream& fout);
-        
-        void write_springs(ofstream& fout);
-        
-        void write_thermo(ofstream& fout);
-        
-        void set_straight_filaments(bool is_straight);
+		void set_straight_filaments(bool is_straight);
 
         void set_y_thresh(double);
-        
-        void set_fene_dist_pct(double);
         
         void set_shear_rate(double);
         
@@ -151,17 +101,39 @@ class filament_ensemble
 
         void clear_broken();
         
-        void print_filament_thermo();
+		vector<vector<double> > spring_spring_intersections(double cllen, double prob);
 
-        void print_network_thermo();
+        void update_shear();
+        
+        void update_d_strain(double);
+        
+        void update_delrx(double);
+        
+        void update_filament_stretching(int);
 
-        void print_filament_lengths();
+		void update_filament_interactions();
+
+		void update_force_between_filaments(int f1, int l1, int f2, int l2);
+        
+        void update_forces(int fil, int bead, double f2, double f3);
         
         void update();
         
         void update_energies();
         
         void turn_quads_off();
+
+        void write_beads(ofstream& fout);
+        
+        void write_springs(ofstream& fout);
+        
+        void write_thermo(ofstream& fout);
+        
+        void print_filament_thermo();
+
+        void print_network_thermo();
+
+        void print_filament_lengths();
     
     protected:
 

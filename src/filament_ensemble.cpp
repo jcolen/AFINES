@@ -190,51 +190,6 @@ void filament_ensemble::set_straight_filaments(bool is_straight)
 }
 
  
-void filament_ensemble::update_positions()
-{
-    int net_sz = int(network.size());
-    for (int f = 0; f < net_sz; f++)
-    {
-        //if (f==0) cout<<"\nDEBUG: update_positions: using "<<omp_get_num_threads()<<" cores";  
-        network[f]->update_positions();
-    }
-
-}
-
- 
-void filament_ensemble::update_positions_range(int lo, int hi)
-{
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        network[f]->update_positions_range(lo, hi);
-    }
-
-}
-
- 
-void filament_ensemble::write_beads(ofstream& fout)
-{
-    for (unsigned int i=0; i<network.size(); i++) {
-        fout<<network[i]->write_beads(i);
-    } 
-}
-
- 
-void filament_ensemble::write_springs(ofstream& fout)
-{
-    for (unsigned int i=0; i<network.size(); i++) {
-        fout<<network[i]->write_springs(i);
-    } 
-}
-
- 
-void filament_ensemble::write_thermo(ofstream& fout){
-    for (unsigned int f = 0; f < network.size(); f++)
-        fout<<network[f]->write_thermo(f);
-    
-}
-
- 
 void filament_ensemble::set_shear_rate(double g)
 {
     if (network.size() > 0)
@@ -254,60 +209,6 @@ void filament_ensemble::set_y_thresh(double y)
 }
 
  
-void filament_ensemble::update_delrx(double drx)
-{
-    //cout<<"\nDEBUG: SHEARING"; 
-    delrx = drx;
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        network[f]->update_delrx(drx);
-    }
-}
-
- 
-void filament_ensemble::update_d_strain(double g)
-{
-    //cout<<"\nDEBUG: SHEARING"; 
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        network[f]->update_d_strain(g);
-    }
-}
-
- 
-void filament_ensemble::update_shear()
-{
-    //cout<<"\nDEBUG: SHEARING"; 
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        network[f]->update_shear(t);
-    }
-}
-
- 
-void filament_ensemble::print_filament_thermo(){
-    
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        cout<<"\nF"<<f<<"\t:";
-        network[f]->print_thermo();
-    }
-
-}
-
- 
-void filament_ensemble::update_energies(){
-    pe_stretch = 0;
-    pe_bend = 0;
-    ke = 0;
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        ke += network[f]->get_kinetic_energy();
-        pe_bend += network[f]->get_bending_energy();
-        pe_stretch += network[f]->get_stretching_energy();
-    }
-}
-
  
 double filament_ensemble::get_stretching_energy(){
     return pe_stretch;
@@ -317,20 +218,6 @@ double filament_ensemble::get_stretching_energy(){
 double filament_ensemble::get_bending_energy(){
     return pe_bend;
 }
-
- 
-void filament_ensemble::print_network_thermo(){
-    cout<<"\nAll Fs\t:\tKE = "<<ke<<"\tPEs = "<<pe_stretch<<"\tPEb = "<<pe_bend<<"\tTE = "<<(ke+pe_stretch+pe_bend);
-}
-
- 
-void filament_ensemble::print_filament_lengths(){
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        cout<<"\nF"<<f<<" : "<<network[f]->get_end2end()<<" um";
-    }
-}
-
 
  
 bool filament_ensemble::is_polymer_start(int fil, int bead){
@@ -354,11 +241,6 @@ void filament_ensemble::set_nq(double nqx, double nqy){
  
 void filament_ensemble::set_visc(double nu){
     visc = nu;
-}
-
- 
-void filament_ensemble::update_forces(int f_index, int a_index, double f1, double f2){
-    network[f_index]->update_forces(a_index, f1,f2);
 }
 
  
@@ -404,31 +286,20 @@ double filament_ensemble::get_bead_friction(){
     return 0;
 }
 
-// Update bending forces between monomers
-
-void filament_ensemble::update_bending()
-{
-    int net_sz = int(network.size());
-    
-    for (int f = 0; f < net_sz; f++)
-    {
-        //if (f==0) cout<<"\nDEBUG: update_bending: using "<<omp_get_num_threads()<<" cores";  
-        network[f]->update_bending(t);
-    }
+void filament_ensemble::set_shear_stop(double stopT){
+    shear_stop = stopT; 
 }
 
 
-void filament_ensemble::update_stretching(){
-    
-//    vector<filament *> newfilaments;
-    int s = network.size(); //keep it to one fracture per filament per timestep, or things get messy
-    for (int f = 0; f < s; f++)
-    {
-        //if (f==0) cout<<"\nDEBUG: update_stretching: using "<<omp_get_num_threads()<<" cores";  
-        this->update_filament_stretching(f);
-    }
+void filament_ensemble::set_shear_dt(double delT){
+    shear_dt = delT; 
 }
 
+
+void filament_ensemble::update_forces(int f_index, int a_index, double f1, double f2){
+    network[f_index]->update_forces(a_index, f1,f2);
+}
+ 
 
 void filament_ensemble::update_filament_stretching(int f){
     vector<filament *> newfilaments = network[f]->update_stretching(t);
@@ -448,21 +319,37 @@ void filament_ensemble::update_filament_stretching(int f){
 }
 
 
-void filament_ensemble::set_shear_stop(double stopT){
-    shear_stop = stopT; 
-}
-
-
-void filament_ensemble::set_shear_dt(double delT){
-    shear_dt = delT; 
-}
-
-
-void filament_ensemble::update_int_forces()
+void filament_ensemble::update_delrx(double drx)
 {
-    this->update_stretching();
-    this->update_bending();
+    //cout<<"\nDEBUG: SHEARING"; 
+    delrx = drx;
+    for (unsigned int f = 0; f < network.size(); f++)
+    {
+        network[f]->update_delrx(drx);
+    }
 }
+
+ 
+void filament_ensemble::update_d_strain(double g)
+{
+    //cout<<"\nDEBUG: SHEARING"; 
+    for (unsigned int f = 0; f < network.size(); f++)
+    {
+        network[f]->update_d_strain(g);
+    }
+}
+
+ 
+void filament_ensemble::update_shear()
+{
+    //cout<<"\nDEBUG: SHEARING"; 
+    for (unsigned int f = 0; f < network.size(); f++)
+    {
+        network[f]->update_shear(t);
+    }
+}
+
+ 
 
 /*
 Introduce bead-bead interactions. In order to allow formation of a nematic phase,
@@ -606,6 +493,21 @@ void filament_ensemble::update()
 }
 
 
+void filament_ensemble::update_energies(){
+    pe_stretch = 0;
+    pe_bend = 0;
+    ke = 0;
+    for (unsigned int f = 0; f < network.size(); f++)
+    {
+        ke += network[f]->get_kinetic_energy();
+        pe_bend += network[f]->get_bending_energy();
+        pe_stretch += network[f]->get_stretching_energy();
+    }
+}
+
+ 
+
+
 vector<vector<double> > filament_ensemble::spring_spring_intersections(double len, double prob){
 
     vector< vector<double> > itrs;
@@ -644,6 +546,57 @@ vector<vector<double> > filament_ensemble::spring_spring_intersections(double le
     }
     return itrs;
 }
+
+
+void filament_ensemble::write_beads(ofstream& fout)
+{
+    for (unsigned int i=0; i<network.size(); i++) {
+        fout<<network[i]->write_beads(i);
+    } 
+}
+
+ 
+void filament_ensemble::write_springs(ofstream& fout)
+{
+    for (unsigned int i=0; i<network.size(); i++) {
+        fout<<network[i]->write_springs(i);
+    } 
+}
+
+ 
+void filament_ensemble::write_thermo(ofstream& fout){
+    for (unsigned int f = 0; f < network.size(); f++)
+        fout<<network[f]->write_thermo(f);
+    
+}
+
+ 
+void filament_ensemble::print_filament_thermo(){
+    
+    for (unsigned int f = 0; f < network.size(); f++)
+    {
+        cout<<"\nF"<<f<<"\t:";
+        network[f]->print_thermo();
+    }
+
+}
+
+
+
+void filament_ensemble::print_network_thermo(){
+    cout<<"\nAll Fs\t:\tKE = "<<ke<<"\tPEs = "<<pe_stretch<<"\tPEb = "<<pe_bend<<"\tTE = "<<(ke+pe_stretch+pe_bend);
+}
+
+ 
+void filament_ensemble::print_filament_lengths(){
+    for (unsigned int f = 0; f < network.size(); f++)
+    {
+        cout<<"\nF"<<f<<" : "<<network[f]->get_end2end()<<" um";
+    }
+}
+
+
+ 
 ////////////////////////////////////////
 ///SPECIFIC FILAMENT IMPLEMENTATIONS////
 ////////////////////////////////////////
