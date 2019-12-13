@@ -56,6 +56,8 @@ class motor
         void update_position_attached(int hd);
         
         void update_force();
+
+		void update_stress();
         
         void update_force_fraenkel_fene();
         
@@ -106,6 +108,8 @@ class motor
         double get_stretching_energy_fene();
 
         double get_kinetic_energy();
+
+		array<double, 4> get_stress();
         
         double metropolis_prob(int hd, array<int, 2> fl_idx, array<double, 2> newpos, double maxprob);
 
@@ -121,6 +125,8 @@ class motor
                damp, shear, max_ext, eps_ext, kinetic_energy, bd_prefactor, tension, len;
         
         array<double,2> hx, hy, pos_a_end, fov, prv_rnd_x, prv_rnd_y, force, disp, direc;
+
+		array<double,4> stress;
 
         array<array<double, 2>, 2> ldir_bind, bind_disp;
 

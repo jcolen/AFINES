@@ -33,6 +33,9 @@ motor_ensemble::motor_ensemble(double mdensity, array<double, 2> myfov, double d
     
     ke = 0;
     pe = 0;
+	n_attached = 0;
+
+	stress = {0, 0, 0, 0};
 
     int nm = int(ceil(mdensity*fov[0]*fov[1]));
     cout<<"\nDEBUG: Number of motors:"<<nm<<"\n";
@@ -74,7 +77,10 @@ motor_ensemble::motor_ensemble(vector<vector<double> > motors, array<double, 2> 
 
     ke = 0;
     pe = 0;
-    
+	n_attached = 0;
+   
+	stress = {0, 0, 0, 0};
+
     int nm = motors.size();
     cout<<"\nDEBUG: Number of motors:"<<nm<<"\n";
 
@@ -90,11 +96,14 @@ motor_ensemble::motor_ensemble(vector<vector<double> > motors, array<double, 2> 
 
         state = {{f_index[0] == -1 && l_index[0] == -1 ? 0 : 1, f_index[1] == -1 && l_index[1] == -1 ? 0 : 1}};  
 
+		if (state[0] == 1 && state[1] == 1)	n_attached += 1;
+
         n_motors.push_back(new motor( motor_pos, mld, f_network, state, f_index, l_index, fov, delta_t, temp, 
                     v0, stiffness, max_ext_ratio, ron, roff, rend, fstall, rcut, vis, BC));
     }
 
     this->update_energies();
+	this->update_stress();
 }
 
 
@@ -112,6 +121,9 @@ int motor_ensemble::get_nmotors( ){
     return n_motors.size();
 }
 
+int motor_ensemble::get_nattached()	{
+	return n_attached;	
+}
 
 void motor_ensemble::kill_heads(int hd){
     for (unsigned int i = 0; i < n_motors.size(); i++)
@@ -163,6 +175,8 @@ void motor_ensemble::motor_walk(double t)
     int nmotors_sz = int(n_motors.size());
     //#pragma omp parallel for
     
+	n_attached = 0;
+
     for (int i=0; i<nmotors_sz; i++) {
        
     //    if(i==0) cout<<"\nDEBUG: motor_walk: using "<<omp_get_num_threads()<<" cores";
@@ -191,11 +205,15 @@ void motor_ensemble::motor_walk(double t)
             else 
                 n_motors[i]->step_onehead(1);
 
+			n_motors[i]->update_stress();
+
+			s = n_motors[i]->get_states();
+			if (s[0] == 1 && s[1] == 1)	n_attached += 1; 
         }
-    
+
     }
     this->update_energies();
-    
+    this->update_stress();
 }
 
 /* Used for static, contstantly attached, motors -- ASSUMES both heads are ALWAYS attached */
@@ -213,12 +231,13 @@ void motor_ensemble::motor_update()
             n_motors[i]->update_position_attached(1);
             n_motors[i]->update_angle();
             n_motors[i]->update_force();
+			n_motors[i]->update_stress();
             //n_motors[i]->update_force_fraenkel_fene();
             n_motors[i]->filament_update();
     
     }
     this->update_energies();
-    
+	this->update_stress();
 }
 
 void motor_ensemble::motor_write(ostream& fout)
@@ -256,6 +275,17 @@ void motor_ensemble::update_energies()
     }
 }
 
+void motor_ensemble::update_stress()	{
+	unsigned int m, n;
+	array<double, 4> m_stress;
+	stress = {0, 0, 0, 0};
+	for (m = 0; m < n_motors.size(); m++)	{
+		m_stress = n_motors[m]->get_stress();
+		for (n = 0; n < 4; n ++) {
+			stress[n] += m_stress[n];
+		}
+	}
+}
  
 double motor_ensemble::get_potential_energy(){
     return pe;
@@ -264,4 +294,7 @@ double motor_ensemble::get_potential_energy(){
  
 void motor_ensemble::print_ensemble_thermo(){
     cout<<"\nAll Motors\t:\tKE = "<<ke<<"\tPEs = "<<pe<<"\tPEb = "<<0<<"\tTE = "<<(ke+pe);
+	cout<<"\n\tAttached: "<<n_attached<<" / "<<n_motors.size();
+	cout<<"\n\tsigma_xx = "<<stress[0]<<" sigma_xy = "<<stress[1];
+	cout<<"\n\tsigma_yx = "<<stress[2]<<" sigma_yy = "<<stress[3];
 }

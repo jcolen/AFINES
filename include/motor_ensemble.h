@@ -42,6 +42,8 @@ class motor_ensemble
 
         int get_nmotors();
 
+		int get_nattached();
+
         void check_broken_filaments();
 
         void motor_walk(double t);
@@ -49,7 +51,9 @@ class motor_ensemble
         void motor_update();
         
         void update_energies();
-        
+       
+		void update_stress();
+
         double get_potential_energy();
 
         void motor_write(ostream& fout);
@@ -68,7 +72,9 @@ class motor_ensemble
 
         double mld, gamma, tMove;
         double ke, pe, v;
+		int n_attached;
 
+		array<double, 4> stress;
         array<double, 2> fov;
         filament_ensemble *f_network;
         vector<motor *> n_motors;  

@@ -72,7 +72,7 @@ class filament_ensemble
         double get_stretching_energy();
         
         double get_bending_energy();
-        
+
         int get_nbeads();
         
         int get_nsprings();
@@ -120,6 +120,8 @@ class filament_ensemble
         void update();
         
         void update_energies();
+
+		void update_order_parameter();
         
         void turn_quads_off();
 
@@ -143,6 +145,7 @@ class filament_ensemble
         bool straight_filaments = false, quad_off_flag;
         double pe_stretch, pe_bend, pe_exv, ke;
 		double rmax, kexv;
+		double order_parameter;
 		string BC;
 
         array<double,2> fov, view;

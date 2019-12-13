@@ -65,7 +65,8 @@ motor::motor( array<double, 3> pos,
 
     shear       = 0;
     tension     = 0;
-    force       = {{0,0}}; // force on the spring  
+    force       = {{0,0}}; // force on the spring 
+	stress 		= {{0, 0, 0, 0}};
     kinetic_energy = 0; //assume m = 1
     
     array<double, 2> posH0 = boundary_check(0, pos[0]-0.5*mld*cos(pos[2]), pos[1]-0.5*mld*sin(pos[2])); 
@@ -168,6 +169,7 @@ motor::motor( array<double, 4> pos,
     //force can be non-zero and angle is determined from disp vector
     this->update_angle();
     this->update_force();
+	this->update_stress();
     
     ldir_bind[0] = {{0,0}};
     ldir_bind[1] = {{0,0}};
@@ -325,6 +327,17 @@ void motor::update_force_fraenkel_fene()
     mkp = mk/(1-scaled_ext*scaled_ext)*(len-mld);
     force = {{mkp*direc[0], mkp*direc[1]}};
 
+}
+
+void motor::update_stress()	{
+	if (state[0] == 0 || state[1] == 0)	{
+		stress = {{0, 0, 0, 0}};
+	} else	{
+		stress[0] = force[0] * direc[0] * len;
+		stress[1] = force[0] * direc[1] * len;
+		stress[2] = force[1] * direc[0] * len;
+		stress[3] = force[1] * direc[1] * len;
+	}
 }
 
 
@@ -549,6 +562,9 @@ double motor::get_kinetic_energy(){
     return kinetic_energy;
 }
 
+array<double, 4> motor::get_stress()	{
+	return stress;
+}
 
 string motor::to_string()
 {

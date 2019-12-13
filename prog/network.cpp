@@ -470,8 +470,8 @@ int main(int argc, char* argv[]){
 			cout<<"\nTime counts: "<<count;
 		    //net->print_filament_thermo();
             net->print_network_thermo();
-            crosslks->print_ensemble_thermo();
-            myosins->print_ensemble_thermo();
+            if (crosslks->get_nmotors() > 0)	crosslks->print_ensemble_thermo();
+            if (myosins->get_nmotors() > 0) 	myosins->print_ensemble_thermo();
         }
 
         //update network

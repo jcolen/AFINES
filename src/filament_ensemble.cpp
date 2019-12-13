@@ -62,7 +62,7 @@ void filament_ensemble::turn_quads_off()
 void filament_ensemble::nlist_init_serial()
 {
     for (int x = 0; x < nq[0]; x++){
-        springs_per_quad.push_back(new vector< vector<array<int, 2> >* >(nq[1]));   
+        springs_per_quad.push_back(new vector< vector<array<int, 2> >* >(nq[1]));
         for (int y = 0; y < nq[1]; y++){
             springs_per_quad[x]->at(y) = new vector<array<int, 2> >();
         }
@@ -476,7 +476,8 @@ void filament_ensemble::update()
 {      
     int net_sz = network.size();
     // #pragma omp parallel for
-   
+  	pe_exv = 0;
+
 	this->update_filament_interactions();
 
     for (int f = 0; f < net_sz; f++){
@@ -487,6 +488,7 @@ void filament_ensemble::update()
     }
     
     this->update_energies();
+	this->update_order_parameter();
     
     t += dt;
 
@@ -505,7 +507,58 @@ void filament_ensemble::update_energies(){
     }
 }
 
- 
+void filament_ensemble::update_order_parameter()	{
+	/*
+		S = \frac{1}{2} < ( 3 cos^2 \theta_i - 1) >
+		where theta_i is measured relative to the molecular axis
+		
+		Here, we will take the molecular axis to be the average orientation 
+		in a given quadrant
+	*/
+	int x, y, i, nsprings_at_quad;
+	double cos_t;
+	array<double, 2> avg_dir, dir;
+	array<int, 2> spring_info;
+	
+	order_parameter = 0;
+	int num_terms = 0;
+
+
+	for (x = 0; x < nq[0]; x ++)	{
+		for (y = 0; y < nq[1]; y ++)	{
+			//Establish average direction in this quadrant
+			avg_dir = {0, 0};
+			nsprings_at_quad = int(springs_per_quad[x]->at(y)->size());
+			if (nsprings_at_quad == 0)	continue;
+			for (i = 0; i < nsprings_at_quad; i ++)	{
+				spring_info = springs_per_quad[x]->at(y)->at(i);
+				dir = network[spring_info[0]]->get_spring(spring_info[1])->get_direction();
+				//To handle nematic symmetry, fix x > 0
+				if (dir[0] < 0)	{
+					avg_dir[0] -= dir[0];
+					avg_dir[1] -= dir[1];
+				} else	{
+					avg_dir[0] += dir[0];
+					avg_dir[1] += dir[1];
+				}
+			}
+			avg_dir[0] /= nsprings_at_quad;
+			avg_dir[1] /= nsprings_at_quad;
+
+			//Add deviations of each spring in this quadrant
+			for (i = 0; i < nsprings_at_quad; i ++)	{
+				spring_info = springs_per_quad[x]->at(y)->at(i);
+				dir = network[spring_info[0]]->get_spring(spring_info[1])->get_direction();
+				//Cos theta is dot product of two unit vectors
+				cos_t = dir[0] * avg_dir[0] + dir[1] * avg_dir[1];
+				order_parameter += cos_t * cos_t;
+			}
+			num_terms += nsprings_at_quad;
+		}
+	}
+
+	order_parameter /= num_terms;
+}
 
 
 vector<vector<double> > filament_ensemble::spring_spring_intersections(double len, double prob){
@@ -584,7 +637,8 @@ void filament_ensemble::print_filament_thermo(){
 
 
 void filament_ensemble::print_network_thermo(){
-    cout<<"\nAll Fs\t:\tKE = "<<ke<<"\tPEs = "<<pe_stretch<<"\tPEb = "<<pe_bend<<"\tTE = "<<(ke+pe_stretch+pe_bend);
+    cout<<"\nAll Fs\t:\tKE = "<<ke<<"\tPEs = "<<pe_stretch<<"\tPEb = "<<pe_bend<<"\tPEe = "<<pe_exv<<"\tTE = "<<(ke+pe_stretch+pe_bend);
+	cout<<"\n\tOrder Parameter = "<<order_parameter;
 }
 
  
@@ -667,7 +721,10 @@ filament_ensemble::filament_ensemble(int npolymer, int nbeads_min, int nbeads_ex
     
     pe_stretch = 0;
     pe_bend = 0;
+	pe_exv = 0;
     ke = 0;
+
+	this->update_order_parameter();
     
     fls = { };
 }
@@ -733,8 +790,11 @@ filament_ensemble::filament_ensemble(double density, array<double,2> myfov, arra
     
     pe_stretch = 0;
     pe_bend = 0;
+	pe_exv = 0;
     ke = 0;
     
+	this->update_order_parameter();
+
     fls = { };
 }
 
@@ -753,6 +813,7 @@ filament_ensemble::filament_ensemble(vector<vector<double> > beads, array<double
 	rmax = RMAX;
 	kexv = A;
 	BC = bc;
+	pe_exv = 0;
 
     view[0] = 1;
     view[1] = 1;
@@ -791,6 +852,7 @@ filament_ensemble::filament_ensemble(vector<vector<double> > beads, array<double
     //this->nlist_init();
     this->nlist_init_serial();
     this->update_energies();
+	this->update_order_parameter();
     
     fls = { };
 } 

@@ -288,14 +288,19 @@ bool spring::get_line_intersect(string bc, double delrx, spring * s2)	{
 double spring::get_r_c(string bc, double delrx, double x, double y)	{
 	double l2 = disp[0] * disp[0] + disp[1] * disp[1];
 	double tp;
-	array <double, 2> proj, point;
+	array <double, 2> proj;
+
+	point = {hx[0], hy[0]};
 
 	if (l2 == 0)	return dist_bc(bc, x - hx[0], y - hy[0], fov[0], fov[1], delrx);
 
 	tp = dot_bc(bc, x-hx[0], y-hy[0], hx[1]-hx[0], hy[1]-hy[0], fov[0], fov[1], delrx) / l2;
 
 	if (tp < 0)	{	return dist_bc(bc, x - hx[0], y - hy[0], fov[0], fov[1], delrx);	}
-	else if (tp > 1.0)	{ return dist_bc(bc, x - hx[1], y - hy[1], fov[0], fov[1], delrx);	}
+	else if (tp > 1.0)	{ 
+		point = {hx[1], hy[1]};
+		return dist_bc(bc, x - hx[1], y - hy[1], fov[0], fov[1], delrx);	
+	}
 	//else
 	proj = {hx[0] + tp * disp[0], hy[0] + tp * disp[1]};
 	point = pos_bc(bc, delrx, 0, fov, {0, 0}, proj);
