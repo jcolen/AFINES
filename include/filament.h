@@ -50,10 +50,6 @@ class filament
 
         void update_shear(double t); 
 
-        void pull_on_ends(double f);
-        
-        void affine_pull(double f);
-        
         vector<filament *> update_stretching(double t);
         
         void update_bending(double);
@@ -83,8 +79,6 @@ class filament
         
         string write_thermo(int fil);
         
-        double get_end2end();
-
         vector<bead *> get_beads(unsigned int first, unsigned int last);
         
         vector<filament *> fracture(int node);
@@ -95,8 +89,6 @@ class filament
         
         void add_bead(bead * a, double l0, double kl, double me);
         
-        void set_BC(string s);
-
         string get_BC();
        
         inline double angle_between_springs(int i, int j);
@@ -119,8 +111,6 @@ class filament
         
         void init_ubend();
     
-        void print_thermo();
-        
         array<double,2> get_bead_position(int bead);
 
     protected:

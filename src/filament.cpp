@@ -229,41 +229,6 @@ void filament::update_positions()
 
 }
 
-void filament::update_positions_range(int lo, int hi)
-{
-    double vx, vy;
-    array<double, 2> new_rnds;
-    array<double, 2> newpos;
-    kinetic_energy = 0;  
-    double top_y = y_thresh*fov[1]/2.; 
-
-    int low = max(0, lo);
-    int high = min(hi, (int)beads.size());
-
-    for (int i = low; i < high; i++){
-       
-        if (fabs(beads[i]->get_ycm()) > top_y) continue;
-     
-        new_rnds = {{rng_n(), rng_n()}};
-        vx  = (beads[i]->get_force()[0])/damp  + bd_prefactor*(new_rnds[0] + prv_rnds[i][0]);
-        vy  = (beads[i]->get_force()[1])/damp  + bd_prefactor*(new_rnds[1] + prv_rnds[i][1]);
-//        cout<<"\nDEBUG: Fx("<<i<<") = "<<beads[i]->get_force()[0]<<"; v = ("<<vx<<" , "<<vy<<")";
-       
-        prv_rnds[i] = new_rnds;
-        //cout<<"\nDEBUG: bead force = ("<<beads[i]->get_force()[0]<<" , "<<beads[i]->get_force()[1]<<")";
-        kinetic_energy += vx*vx + vy*vy;
-        //newpos = boundary_check(i, beads[i]->get_xcm() + vx*dt, beads[i]->get_ycm() + vy*dt); 
-        newpos = pos_bc(BC, delrx, dt, fov, {{vx, vy}}, {{beads[i]->get_xcm() + vx*dt, beads[i]->get_ycm() + vy*dt}});
-        beads[i]->set_xcm(newpos[0]);
-        beads[i]->set_ycm(newpos[1]);
-        beads[i]->reset_force(); 
-    }
-
-    for (unsigned int i = 0; i < springs.size(); i++)
-        springs[i]->step(BC, delrx);
-
-}
-
 vector<filament *> filament::update_stretching(double t)
 {
     vector<filament *> newfilaments;
@@ -330,34 +295,6 @@ void filament::update_d_strain(double g){
 void filament::update_forces(int index, double f1, double f2)
 {
     beads[index]->update_force(f1,f2);
-}
-
-void filament::pull_on_ends(double f)
-{
-    if (beads.size() < 2) return;
-    int last = beads.size() - 1; 
-    array<double, 2> dr = rij_bc(BC, beads[last]->get_xcm() - beads[0]->get_xcm(),  
-                                     beads[last]->get_ycm() - beads[0]->get_ycm(), fov[0], fov[1], delrx);
-    double len = hypot(dr[0], dr[1]);
-    
-    beads[ 0  ]->update_force(-0.5*f*dr[0]/len, -0.5*f*dr[1]/len);
-    beads[last]->update_force( 0.5*f*dr[0]/len,  0.5*f*dr[1]/len);
-}
-
-void filament::affine_pull(double f)
-{
-    if (beads.size() < 2) return;
-    int last = beads.size() - 1; 
-    array<double, 2> dr = rij_bc(BC, beads[last]->get_xcm() - beads[0]->get_xcm(),  
-                                     beads[last]->get_ycm() - beads[0]->get_ycm(), fov[0], fov[1], delrx);
-    double len = hypot(dr[0], dr[1]);
-    //cout<<"\nDEBUG: angle = "<<ang;
-    double frac, fcos = f*dr[0]/len, fsin = f*dr[1]/len;
-
-    for (int i = 0; i <= last; i++){
-        frac = (double(i)/double(last)-0.5);
-        beads[i]->update_force(frac*fcos, frac*fsin);
-    }
 }
 
 void filament::set_shear(double g){
@@ -473,10 +410,6 @@ string filament::to_string(){
 
 string filament::get_BC(){
     return BC; 
-}
-
-void filament::set_BC(string s){
-    this->BC = s;
 }
 
 inline double filament::angle_between_springs(int i, int j){
@@ -633,18 +566,3 @@ array<double, 2> filament::get_bead_position(int n)
 {
     return {{beads[n]->get_xcm(), beads[n]->get_ycm()}};
 }
-
-void filament::print_thermo()
-{
-    cout<<"\tKE = "<<this->get_kinetic_energy()<<"\tPE = "<<this->get_potential_energy()<<\
-        "\tTE = "<<this->get_total_energy();
-}
-
-double filament::get_end2end()
-{
-    if (beads.size() < 2) 
-        return 0;
-    else 
-        return dist_bc(BC, beads[beads.size() - 1]->get_xcm() - beads[0]->get_xcm(),  
-                           beads[beads.size() - 1]->get_ycm() - beads[0]->get_ycm(), fov[0], fov[1], delrx);
-} 

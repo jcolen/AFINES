@@ -41,12 +41,6 @@ filament_ensemble::~filament_ensemble(){
 }
 
 
-vector<filament *>* filament_ensemble::get_network()
-{
-    return &network;
-}
-
-
 filament * filament_ensemble::get_filament(int index)
 {
     return network[index];
@@ -138,31 +132,9 @@ set<pair<double, array<int, 2>>> filament_ensemble::get_dist(double x, double y)
 }
 
 
-set<pair<double, array<int,2>>> filament_ensemble::get_dist_all(double x, double y)
-{
-    set<pair<double, array<int,2>>> t_map;
-    double dist_sq=0;
-    for (int f = 0; f < int(network.size()); f++){
-        for (int l=0; l < network[f]->get_nsprings(); l++){
-                network[f]->get_spring(l)->calc_intpoint(network[f]->get_BC(), delrx, x, y); //calculate the point on the spring closest to (x,y)
-                dist_sq = network[f]->get_spring(l)->get_distance_sq(network[f]->get_BC(), delrx, x, y); //store the distance to that point
-                // t_map[dist] = {f,l}; 
-                t_map.insert(pair<double, array<int, 2>>(dist_sq, {{f, l}}));
-        }
-    }
-    
-    return t_map;
-}
-
 double filament_ensemble::get_llength(int fil, int spring)
 {
     return network[fil]->get_spring(spring)->get_length();
-}
-
-
-array<double,2> filament_ensemble::get_start(int fil, int spring)
-{
-    return {{network[fil]->get_spring(spring)->get_hx()[0] , network[fil]->get_spring(spring)->get_hy()[0]}};
 }
 
 
@@ -184,25 +156,6 @@ array<double,2> filament_ensemble::get_direction(int fil, int spring)
 }
 
  
-void filament_ensemble::set_straight_filaments(bool is_straight)
-{
-    straight_filaments = is_straight;
-}
-
- 
-void filament_ensemble::set_shear_rate(double g)
-{
-    if (network.size() > 0)
-        if (network[0]->get_nbeads() > 0)
-            shear_speed = g*fov[1] / (2*network[0]->get_bead(0)->get_friction());
-
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        network[f]->set_shear(g);
-    }
-}
-
- 
 void filament_ensemble::set_y_thresh(double y)
 {
     for (unsigned int f = 0; f < network.size(); f++) network[f]->set_y_thresh(y);
@@ -217,30 +170,6 @@ double filament_ensemble::get_stretching_energy(){
  
 double filament_ensemble::get_bending_energy(){
     return pe_bend;
-}
-
- 
-bool filament_ensemble::is_polymer_start(int fil, int bead){
-
-    return !(bead);
-
-}
-
- 
-void filament_ensemble::set_fov(double fovx, double fovy){
-    fov[0] = fovx;
-    fov[1] = fovy;
-}
-
- 
-void filament_ensemble::set_nq(double nqx, double nqy){
-    nq[0] = nqx;
-    nq[1] = nqy;
-}
-
- 
-void filament_ensemble::set_visc(double nu){
-    visc = nu;
 }
 
  
@@ -274,25 +203,6 @@ int filament_ensemble::get_nfilaments(){
  
 double filament_ensemble::get_delrx(){
     return delrx;
-}
-
- 
-double filament_ensemble::get_bead_friction(){
-    
-    if (network.size() > 0)
-        if (network[0]->get_nbeads() > 0)
-            return network[0]->get_bead(0)->get_friction();
-    
-    return 0;
-}
-
-void filament_ensemble::set_shear_stop(double stopT){
-    shear_stop = stopT; 
-}
-
-
-void filament_ensemble::set_shear_dt(double delT){
-    shear_dt = delT; 
 }
 
 
@@ -551,13 +461,14 @@ void filament_ensemble::update_order_parameter()	{
 				dir = network[spring_info[0]]->get_spring(spring_info[1])->get_direction();
 				//Cos theta is dot product of two unit vectors
 				cos_t = dir[0] * avg_dir[0] + dir[1] * avg_dir[1];
-				order_parameter += cos_t * cos_t;
+				order_parameter += 3 * cos_t * cos_t - 1;
 			}
 			num_terms += nsprings_at_quad;
 		}
 	}
 
 	order_parameter /= num_terms;
+	order_parameter *= 0.5;
 }
 
 
@@ -624,31 +535,10 @@ void filament_ensemble::write_thermo(ofstream& fout){
 }
 
  
-void filament_ensemble::print_filament_thermo(){
-    
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        cout<<"\nF"<<f<<"\t:";
-        network[f]->print_thermo();
-    }
-
-}
-
-
-
 void filament_ensemble::print_network_thermo(){
     cout<<"\nAll Fs\t:\tKE = "<<ke<<"\tPEs = "<<pe_stretch<<"\tPEb = "<<pe_bend<<"\tPEe = "<<pe_exv<<"\tTE = "<<(ke+pe_stretch+pe_bend);
 	cout<<"\n\tOrder Parameter = "<<order_parameter;
 }
-
- 
-void filament_ensemble::print_filament_lengths(){
-    for (unsigned int f = 0; f < network.size(); f++)
-    {
-        cout<<"\nF"<<f<<" : "<<network[f]->get_end2end()<<" um";
-    }
-}
-
 
  
 ////////////////////////////////////////

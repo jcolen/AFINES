@@ -49,8 +49,6 @@ class motor
         
         bool attach( int hd);
 
-        void relax_head( int hd);
-
         void kill_head( int hd);
         
         void update_position_attached(int hd);
@@ -58,8 +56,6 @@ class motor
         void update_force();
 
 		void update_stress();
-        
-        void update_force_fraenkel_fene();
         
         void update_angle();
         
@@ -105,8 +101,6 @@ class motor
 
         double get_stretching_energy();
         
-        double get_stretching_energy_fene();
-
         double get_kinetic_energy();
 
 		array<double, 4> get_stress();

@@ -78,32 +78,6 @@ void spring::update_force(string bc, double shear_dist)
     force = {{kf*direc[0], kf*direc[1]}};
 }
 
-/* Taken from hsieh, jain, larson, jcp 2006; eqn (5)
- * Adapted by placing a cutoff, similar to how it's done in LAMMPS src/bond_fene.cpp*/
-void spring::update_force_fraenkel_fene(string bc, double shear_dist)
-{
-    double ext = abs(l0 - llen);
-    double scaled_ext, klp;
-    if (max_ext - ext > eps_ext ){
-        scaled_ext = ext/max_ext;
-    }
-    else{
-        scaled_ext = (max_ext - eps_ext)/max_ext;
-    }
-
-    klp = kl/(1-scaled_ext*scaled_ext)*(llen-l0);
-    force = {{klp*direc[0], klp*direc[1]}};
-
-}
-
-void spring::update_force_marko_siggia(string bc, double shear_dist, double kToverLp)
-{
-    double xrat = llen/l0, yrat = llen/l0;
-    if (xrat != xrat || xrat == 1) xrat = 0;
-    if (yrat != yrat || yrat == 1) yrat = 0;
-    force = {{kToverLp*(0.25/((1-xrat)*(1-xrat))-0.25+xrat), kToverLp*(0.25/((1-yrat)*(1-yrat))-0.25+yrat)}};  
-}
-
 array<double,2> spring::get_force()
 {
     return force;
@@ -323,15 +297,4 @@ array<double, 2> spring::get_direction()
 
 double spring::get_stretching_energy(){
     return (force[0]*force[0]+force[1]*force[1])/(2*kl);
-}
-
-double spring::get_stretching_energy_fene(string bc, double shear_dist)
-{
-    double ext = abs(l0 - llen);
-    
-    if (max_ext - ext > eps_ext )
-        return -0.5*kl*max_ext*max_ext*log(1-(ext/max_ext)*(ext/max_ext));
-    else
-        return 0.25*kl*ext*ext*(max_ext/eps_ext);
-    
 }

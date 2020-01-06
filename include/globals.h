@@ -64,7 +64,6 @@ void set_seed(int s);
 double rng_u();
 double rng(double start, double end);
 int pr(int num);
-double rng_exp(double mean);
 double rng_n(); //default parameters --> mu = 0, sig = 1
 double rng_n(double mean, double var);
 bool event(double prob);
@@ -78,10 +77,6 @@ vector<int> range_bc(string bc, double delrx, int botq, int topq, int low, int h
 vector<int> range_bc(string bc, double delrx, int botq, int topq, int low, int high, int di);
 vector<int> int_range(int lo, int hi);
 vector<int> int_range(int lo, int hi, int di);
-
-double mean_periodic(const vector<double>& nums, double bnd);
-double mean(const vector<double>& nums);
-array<double, 2> cm_bc(string bc, const vector<double>& xi, const vector<double>& yi, double xbox, double ybox, double shear_dist);
 
 double dist_bc(string bc, double dx, double dy, double xbox, double ybox, double shear_dist);
 double dot_bc(string bc, double dx1, double dy1, double dx2, double dy2, double xbox, double ybox, double shear_dist);
@@ -97,28 +92,15 @@ double dot(double x1, double y1, double x2, double y2);
 double cross(const array<double, 2>& v1, const array<double, 2>& v2);
 double dot(const array<double, 2>& v1, const array<double, 2>& v2);
 
-double angBC(double ang);
-
-double var(const vector<double>& vals);
-double mode_var(const vector<double>& vals, double m);
 bool close(double e, double a, double r);
-bool are_same(double a, double b);
-vector<double> sum_vecs(const vector<double>& v1, const vector<double>& v2);
-vector<double *> vec2ptrvec(const vector<double>&, int dim);
-vector<double *> str2ptrvec(string, string, string);
 vector<array<double,3> > str2arrvec(string, string, string);
 vector<vector<double> > file2vecvec(string path, string delim);
 vector<vector<double> > traj2vecvec(string path, string delim, double tf);
 double last_full_timestep(string dirpath);
 void write_first_nlines(string path, int n);
-void write_first_ntsteps(string path, int n);
 void write_first_tsteps(string path, double tstop);
 
 template <typename T> int sgn(T val);
-
-pair<double, array<int, 2> > flip_pair(const pair<array<int, 2>, double> &p);
-multimap<double, array<int, 2> > flip_map(const std::unordered_map<array<int, 2>, double, boost::hash<array<int,2>>> &p);
-string print_pair(string name, const array<double, 2>& p);
 
 //template <typename A, typename B> pair<B,A> flip_pair(const pair<A,B> &p);
 //template <typename A, typename B> multimap<B,A> flip_map(const map<A,B> &src);
@@ -129,7 +111,6 @@ void intarray_printer(array<int,2> a);
 
 boost::optional<array<double, 2> > seg_seg_intersection(const array<double, 2>&, const array<double, 2>&, const array<double, 2>&, const array<double, 2>&);
 boost::optional<array<double, 2> > seg_seg_intersection_bc(string, double, const array<double, 2>&, const array<double, 2>&, const array<double, 2>&, const array<double, 2>&, const array<double, 2>&);
-std::string quads_error_message(std::string, vector<array<int, 2> >, vector<array<int, 2> > );
 #endif
 
 

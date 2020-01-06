@@ -67,12 +67,6 @@ class spring
 
         void update_force(string bc, double shear_dist);
         
-        void update_force_fraenkel_fene(string bc, double shear_dist);
-        
-        double get_stretching_energy_fene(string bc, double shear_dist);
-        
-        void update_force_marko_siggia(string bc, double shear_dist, double kToverA);
-
         array<double,2> get_force();
 
         void set_aindex1(int i);

@@ -48,13 +48,6 @@ int pr(int num)
 	}
 }
 
-double rng_exp(double mean)
-{
-    double u;
-    u=rand() / (RAND_MAX + 1.);
-    return  -mean*log(u);
-}
-
 void set_seed(int s){
     generator.seed(s);
     srand(s);
@@ -152,34 +145,6 @@ double my_velocity(double vel0, double force, double fstall)
 
 }
 
-array<double, 2> cm_bc(string bc, const vector<double>& xi, const vector<double>& yi, double xbox, double ybox, double delrx)
-{
-    if (bc == "PERIODIC" || bc == "LEES-EDWARDS")
-        return {{mean_periodic(xi, xbox) , mean_periodic(yi, ybox)}};
-    else
-        return {{mean(xi), mean(yi)}};
-}
-
-double mean(const vector<double>& nums)
-{
-    double tot = 0;
-    for (double n : nums) tot += n;
-    return tot/((double) nums.size());
-}
-
-// Source https://en.wikipedia.org/wiki/Center_of_mass#Systems_with_periodic_boundary_conditions
-double mean_periodic(const vector<double>& nums, double bnd)
-{
-    double theta, xitot=0, zetatot=0;
-    for (double n : nums){
-        theta = n*2*pi/bnd;
-        xitot += cos(theta);
-        zetatot += sin(theta);
-    }
-    double thetabar = atan2(zetatot/((double) nums.size()), xitot/((double) nums.size())) + pi; 
-    return bnd*thetabar/(2*pi);
-}
-
 double cross(double ax, double ay, double bx, double by)
 {
     return ax*by-bx*ay;
@@ -200,46 +165,6 @@ double dot(const array<double, 2>& v1, const array<double, 2>& v2)
     return v1[0]*v2[0]+v1[1]*v2[1];
 }
 
-double var(const vector<double>& vals)
-{
-    double m = mean(vals), sum = 0;
-    for (unsigned int i = 0; i < vals.size(); i++){
-        sum += (vals[i] - m)*(vals[i] - m);
-    }
-    return sum / vals.size();
-}
-
-double mode_var(const vector<double>& vals, double m)
-{
-    double sum = 0;
-    for (unsigned int i = 0; i < vals.size(); i++){
-        sum += (vals[i] - m)*(vals[i] - m);
-    }
-    return sum / vals.size();
-}
-
-vector<double> sum_vecs(const vector<double>& v1, const vector<double>& v2)
-{
-    vector<double> s;
-    if (v1.empty())
-        s = v2;
-    else if( v2.empty())
-        s = v1;
-    else if (v1.size() != v2.size())
-        return s;
-    else{
-        for (unsigned int i = 0; i < v1.size(); i++){
-            s.push_back(v1[i] + v2[i]);
-        }
-    }
-    return s;
-}
-
-//SO:17333 (more info there)
-bool are_same(double a, double b)
-{
-    return fabs(a-b) < std::numeric_limits<double>::epsilon();
-}
 
 bool close(double actual, double expected, double err)
 {
@@ -251,57 +176,6 @@ bool close(double actual, double expected, double err)
     }
 }
 
-/* Takes a vector formatted 
- * [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
- * And converts it to a vector formatted
- * [{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}] if dim = 4 
- * Or
- * [{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}] if dim = 3
- */
-
-vector<double *> vec2ptrvec(const vector<double>& v, int dim)
-{
-    vector<double *> out;
-    double * pos;
-    for (unsigned int i = 0; i < v.size(); i+=dim)
-    {
-        pos = new double[dim];
-        for (int j = 0; j < dim; j++)
-        {
-           pos[j] = v[i+j];
-        }
-        out.push_back(pos);
-    }
-    return out;
-}
-
-/* Takes a string formatted
- * 1,2,3;4,5,6;7,8,9;10,11,12
- * and converts it into a vector of pointers:
- * [{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}] 
- */
-
-vector<double *> str2ptrvec(string pos_str, string pos_dlm, string coord_dlm)
-{
-    vector<string> posn, posns, coords;           
-    vector<double *> out;
-    double * pos;
-
-    boost::split(posns, pos_str, boost::is_any_of(pos_dlm));
-
-    for(unsigned int i=0; i < posns.size(); i++){
-        
-        boost::split(coords, posns[i], boost::is_any_of(coord_dlm));
-        pos = new double[coords.size()];
-        
-        for(unsigned int j=0; j < coords.size(); j++){
-            pos[j] = (double) atof(coords[j].data());
-        }
-        out.push_back(pos);
-    }
-
-    return out;
-}
 
 vector<array<double,3> > str2arrvec(string pos_str, string pos_dlm, string coord_dlm)
 {
@@ -481,21 +355,6 @@ array<double, 2> pos_bc(string bc, double delrx, double dt, const array<double, 
 }
 
 
-// Method to sort a map by value; source, for more general formulation:
-// http://stackoverflow.com/questions/5056645/sorting-stdmap-using-value/5056797#5056797
-pair<double, array<int, 2> > flip_pair(const pair<array<int, 2>, double> &p)
-{
-        return std::pair<double,array<int,2> >(p.second, p.first);
-}
-
-multimap<double, array<int, 2> > flip_map(const unordered_map<array<int, 2>, double, boost::hash<array<int,2>>> &src)
-{
-    multimap<double,array<int,2> > dst;
-    std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()), 
-            flip_pair);
-    return dst;
-}
-
 boost::optional<array<double, 2> > seg_seg_intersection(const array<double, 2>& r1, const array<double, 2>& r2, const array<double, 2>& s1, const array<double, 2>& s2)
 {
     double a1, a2, b1, b2, c1, c2, det, x, y;
@@ -533,11 +392,6 @@ boost::optional<array<double, 2> > seg_seg_intersection(const array<double, 2>& 
     //and the logic will look really gross
 
     }*/
-}
-
-string print_pair(string name, const array<double, 2>& p)
-{
-    return name + ": ("+std::to_string(p[0])+","+std::to_string(p[1])+")";
 }
 
 boost::optional<array<double, 2> > seg_seg_intersection_bc(string bc, double delrx, const array<double, 2>& fov, const array<double, 2>& r1, const array<double, 2>& r2, const array<double, 2>& r3, const array<double, 2>& r4)
@@ -582,22 +436,6 @@ int coord2quad(double fov, int nq, double coord)
         return 0;
     else
         return q;
-}
-
-double angBC(double ang)
-{
-    return ang - 2*pi*floor(ang / (2*pi) + 0.5);
-}
-
-std::string quads_error_message(std::string title, vector<array<int, 2> > equads, vector< array<int, 2> > aquads)
-{
-
-    cout<<"\nTEST "<< title<< ": Expected Quadrants : don't equal spring Quadrants : \n";
-    cout<<"\nActual Quadrants:"; 
-    for_each(aquads.begin(), aquads.end(), intarray_printer);
-    cout<<"\nExpected Quadrants:"; 
-    for_each(equads.begin(), equads.end(), intarray_printer);
-    return "";
 }
 
 vector<vector<double> > traj2vecvec(string path, string delim, double tf)
@@ -697,39 +535,6 @@ void write_first_nlines(string src, int nlines)
         n++;
     }
 
-    read_file.close();
-    write_file.close();
-
-}
-
-void write_first_ntsteps(string src, int ntsteps)
-{
-
-    string tmp = src + ".tmp";
-    fs::path src_path(src), tmp_path(tmp);
-
-    fs::copy_file(src_path, tmp_path, fs::copy_option::overwrite_if_exists);
-
-    ifstream read_file;
-    read_file.open(tmp);
-
-    ofstream write_file;
-    write_file.open(src);
-
-
-    string pos_str;
-    int nt = 0;
-    while(getline(read_file, pos_str))
-    {
-        if (pos_str[0]=='t'){
-            nt++;
-            if (nt > ntsteps) 
-                goto closefiles;
-        }
-        write_file << pos_str << endl;
-    }
-
-closefiles:
     read_file.close();
     write_file.close();
 

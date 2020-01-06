@@ -121,10 +121,6 @@ int motor_ensemble::get_nmotors( ){
     return n_motors.size();
 }
 
-int motor_ensemble::get_nattached()	{
-	return n_attached;	
-}
-
 void motor_ensemble::kill_heads(int hd){
     for (unsigned int i = 0; i < n_motors.size(); i++)
         n_motors[i]->kill_head(hd);
@@ -245,12 +241,6 @@ void motor_ensemble::motor_write(ostream& fout)
     for (unsigned int i=0; i<n_motors.size(); i++) {
         fout<<n_motors[i]->write();
     } 
-}
-
-
-void motor_ensemble::add_motor(motor * m)
-{
-    n_motors.push_back(m);
 }
 
 

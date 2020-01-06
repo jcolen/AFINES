@@ -47,26 +47,18 @@ class filament_ensemble
         
         void update_dist_map(set<pair<double, array<int, 2>>>& t_map, const array<int, 2>& mquad, double x, double y);
         
-        vector<filament *> * get_network();
-
         filament * get_filament(int index);
 
         set<pair<double, array<int,2>>> get_dist(double x, double y);
         
-        set<pair<double, array<int,2>>> get_dist_all(double x, double y);
-        
         array<double,2> get_direction(int fil, int spring);
 
-        array<double,2> get_start(int fil, int spring);
-        
         array<double,2> get_end(int fil, int spring);
         
         array<double,2> get_force(int fil, int bead);
         
         double get_llength(int fil, int spring);
        
-        double get_bead_friction();
-        
         double get_delrx();
         
         double get_stretching_energy();
@@ -79,24 +71,8 @@ class filament_ensemble
         
         int get_nfilaments();
         
-		void set_straight_filaments(bool is_straight);
-
         void set_y_thresh(double);
         
-        void set_shear_rate(double);
-        
-        void set_shear_stop(double);
-
-        void set_shear_dt(double);
-        
-        bool is_polymer_start(int f, int a);
-
-        void set_fov(double x, double y);
-
-        void set_nq(double x, double y);
-
-        void set_visc(double v);
-
         vector<int> get_broken();
 
         void clear_broken();
@@ -131,12 +107,8 @@ class filament_ensemble
         
         void write_thermo(ofstream& fout);
         
-        void print_filament_thermo();
-
         void print_network_thermo();
 
-        void print_filament_lengths();
-    
     protected:
 
         double t, dt, temperature, spring_rest_len, visc, min_time;

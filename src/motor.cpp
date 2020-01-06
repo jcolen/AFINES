@@ -311,24 +311,6 @@ void motor::update_force()
 //    force = {{tension*disp[0]/len, tension*disp[1]/len}};
 }
 
-/* Taken from hsieh, jain, larson, jcp 2006; eqn (5)
- * Adapted by placing a cutoff, similar to how it's done in LAMMPS src/bond_fene.cpp*/
-
-void motor::update_force_fraenkel_fene()
-{
-    double ext = abs(mld - len);
-    double scaled_ext, mkp;
-    
-    if (max_ext - ext > eps_ext )
-        scaled_ext = ext/max_ext;
-    else
-        scaled_ext = (max_ext - eps_ext)/max_ext;
-    
-    mkp = mk/(1-scaled_ext*scaled_ext)*(len-mld);
-    force = {{mkp*direc[0], mkp*direc[1]}};
-
-}
-
 void motor::update_stress()	{
 	if (state[0] == 0 || state[1] == 0)	{
 		stress = {{0, 0, 0, 0}};
@@ -362,14 +344,6 @@ void motor::brownian_relax(int hd)
 void motor::kill_head(int hd)
 {
     state[hd] = -1;
-}
-
-
-void motor::relax_head(int hd)
-{
-    array<double, 2> newpos = boundary_check(hd, hx[pr(hd)] - pow(-1, hd)*mld*direc[0], hy[pr(hd)] - pow(-1, hd)*mld*direc[1]);
-    hx[hd] = newpos[0];
-    hy[hd] = newpos[1];
 }
 
 
@@ -543,18 +517,6 @@ array<double, 2> motor::get_force(){
 
 double motor::get_stretching_energy(){
     return (force[0]*force[0]+force[1]*force[1])/(2*mk);
-}
-
-
-double motor::get_stretching_energy_fene()
-{
-    double ext = abs(mld - len);
-    
-    if (max_ext - ext > eps_ext )
-        return -0.5*mk*max_ext*max_ext*log(1-(ext/max_ext)*(ext/max_ext));
-    else
-        return 0.25*mk*ext*ext*(max_ext/eps_ext);
-    
 }
 
 

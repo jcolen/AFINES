@@ -42,8 +42,6 @@ class motor_ensemble
 
         int get_nmotors();
 
-		int get_nattached();
-
         void check_broken_filaments();
 
         void motor_walk(double t);
@@ -61,8 +59,6 @@ class motor_ensemble
         void print_ensemble_thermo();
         
         void motor_tension(ofstream& fout);
-
-        void add_motor(motor * m);
 
         void set_shear(double g);
         
