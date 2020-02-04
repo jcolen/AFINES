@@ -426,7 +426,7 @@ void filament_ensemble::update_order_parameter()	{
 		in a given quadrant
 	*/
 	int x, y, i, nsprings_at_quad;
-	double cos_t;
+	double cos_t, mag;
 	array<double, 2> avg_dir, dir;
 	array<int, 2> spring_info;
 	
@@ -452,8 +452,12 @@ void filament_ensemble::update_order_parameter()	{
 					avg_dir[1] += dir[1];
 				}
 			}
-			avg_dir[0] /= nsprings_at_quad;
-			avg_dir[1] /= nsprings_at_quad;
+			
+			mag = sqrt(avg_dir[0] * avg_dir[0] + avg_dir[1] * avg_dir[1]);
+			avg_dir[0] /= mag;
+			avg_dir[1] /= mag;
+			//avg_dir[0] /= nsprings_at_quad;
+			//avg_dir[1] /= nsprings_at_quad;
 
 			//Add deviations of each spring in this quadrant
 			for (i = 0; i < nsprings_at_quad; i ++)	{
