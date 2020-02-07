@@ -216,7 +216,7 @@ void filament_ensemble::update_filament_stretching(int f){
 
     if (newfilaments.size() > 0){ //fracture event occured
 
-        cout<<"\n\tDEBUG: fracturing filament : "<<f;
+        cout<<"\n\tDEBUG: fracturing filament : "<<f << " Size: " << newfilaments.size() << "\n";
         filament * broken = network[f];     //store a pointer to the broken filament to delete it with
         network[f] = newfilaments[0];       //replace that pointer with one of the new filaments
 
@@ -225,6 +225,8 @@ void filament_ensemble::update_filament_stretching(int f){
         broken_filaments.push_back(f);      // record the index, for automatic motor detachment
         delete broken;                      // delete the old filament
 
+		//Need to update the neighborlist map
+		this->quad_update_serial();
     }
 }
 
@@ -273,9 +275,10 @@ void filament_ensemble::update_filament_interactions()
 	int f1, f2, l1, l2;	//f = filament number	l = link number
 	int x, y, i, j;
 	int nsprings_at_quad;
-	double par1, par2;
+	int par1, par2;
 
-	int dim = this->get_nsprings();
+	//int dim = this->get_nsprings();
+	int dim = (this->get_nfilaments()) * max_springs_per_quad_per_filament;
 	vector<vector<int>> int_lks (dim, vector<int>(dim, 0));
 
 	//Loop over quadrants of 2D system
@@ -296,13 +299,14 @@ void filament_ensemble::update_filament_interactions()
 
 					if (f1 == f2 && abs(l1 - l2) < 2)	continue;
 
-					par1 = f1 * (network[f1]->get_nsprings()) + l1;
-					par2 = f2 * (network[f2]->get_nsprings()) + l2;
-
+					//par1 = f1 * (network[f1]->get_nsprings()) + l1;
+					//par2 = f2 * (network[f2]->get_nsprings()) + l2;
+					par1 = f1 * max_springs_per_quad_per_filament + l1;
+					par2 = f2 * max_springs_per_quad_per_filament + l2;
+					
 					if (! int_lks[par1][par2])	{
 						int_lks[par1][par2] = 1;
 						int_lks[par2][par1] = 1;
-
 						this->update_force_between_filaments(f1, l1, f2, l2);
 					}
 				}
@@ -396,10 +400,9 @@ void filament_ensemble::update()
         network[f]->update_bending(t);
         network[f]->update_positions();
     }
-    
+
     this->update_energies();
 	this->update_order_parameter();
-    
     t += dt;
 
 }
@@ -432,7 +435,6 @@ void filament_ensemble::update_order_parameter()	{
 	
 	order_parameter = 0;
 	int num_terms = 0;
-
 
 	for (x = 0; x < nq[0]; x ++)	{
 		for (y = 0; y < nq[1]; y ++)	{
